@@ -8,7 +8,7 @@
   ],
   "name": "skynode-nfs",
   "description": "skynode native filesystem acess api",
-  "main": "./nfs",
+  "main": "./index",
   "version": "0.9.0",
   "preferGlobal": "true",
   "homepage": "",
