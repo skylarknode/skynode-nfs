@@ -1,4 +1,5 @@
 'use strict';
+
 const _fs = require('fs-extra');
 const _chokidar = require('chokidar');
 const _diskspace = require('diskspace');
@@ -22,6 +23,8 @@ var MODE_0755 = parseInt('0755', 8);
 
 
 var rimraf = Promise.promisify(require('rimraf'));
+
+
 
 /**
  * Filter names starting with a dot
@@ -202,7 +205,8 @@ var handleSystemError = function(next) {
    
      console.error(e.stack)
 
-     return next(new HTTPError('A server error occur, if this happens again please contact the administrator: '+e.message, 500))
+     return next(e);
+     //return next(new HTTPError('A server error occur, if this happens again please contact the administrator: '+e.message, 500))
    }  
 }
 
@@ -796,6 +800,9 @@ function readSync(path,encode) {
     encode = encode || 'utf8';
     return fs.readFileSync(path, encode);
 }
+
+console("=================");
+
 
 module.exports = {
   noDotFiles: noDotFiles,

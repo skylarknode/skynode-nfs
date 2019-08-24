@@ -1,3 +1,3 @@
 const nfs = require("./nfs");
 
-return nfs;
+module.exports =  nfs;
