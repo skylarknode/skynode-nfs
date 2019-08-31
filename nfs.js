@@ -801,9 +801,6 @@ function readSync(path,encode) {
     return fs.readFileSync(path, encode);
 }
 
-console("=================");
-
-
 module.exports = {
   noDotFiles: noDotFiles,
   higherPath: higherPath,
