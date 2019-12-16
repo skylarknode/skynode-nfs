@@ -16,8 +16,7 @@
     "type": "git",
     "url": "git://github.com/skylarknode/skynode-nfs.git"
   },
-  "scripts": {
-  },
+  "scripts": {},
   "dependencies": {
     "archiver": "^2.1.1",
     "bluebird": "^3.5.1",
@@ -31,7 +30,7 @@
     "filenamify": "^2.0.0",
     "findit": ">=2.0.0",
     "formidable": ">=1.0.17",
-    "fs-extra": "^4.0.2",
+    "fs-extra": "^4.0.3",
     "glob": "^7.1.2",
     "glob-promise": "^3.3.0",
     "got": "^8.2.0",
