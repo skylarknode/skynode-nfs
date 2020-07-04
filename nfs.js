@@ -838,6 +838,8 @@ module.exports = {
 
   quoat : quoat,
 
+  checkEmpty : checkEmpty,
+
   exists: exists,
   existsSync: existsSync,
 
