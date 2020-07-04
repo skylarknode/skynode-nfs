@@ -739,7 +739,7 @@ function rmdirSync(path ) {
  * Check if the given directory `path` is empty.
  */
 
-function checkEmpty(path, callback) {
+function isEmpty(path, callback) {
   function _checkEmpty() {
     fs.readdir(path, function(err, files) {
         if (err && err.code !== 'ENOENT') {
@@ -838,7 +838,7 @@ module.exports = {
 
   quoat : quoat,
 
-  checkEmpty : checkEmpty,
+  isEmpty : isEmpty,
 
   exists: exists,
   existsSync: existsSync,
