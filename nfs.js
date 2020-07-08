@@ -5,7 +5,7 @@ const _chokidar = require('chokidar');
 const _diskspace = require('diskspace');
 
 var p = require('path');
-var Promise = require('bluebird');
+var Promise = require('bluebird')
 var util = require('util');
 var fs = Promise.promisifyAll(require('fs'));
 //var HTTPError = require('./HTTPError.js');
@@ -474,62 +474,6 @@ var paths = function(path, options) {
   return items;
 }
 
-var stat = function(path) {
-    return fs.statAsync(path).then(function(stat) {
-      var info = {
-        name: p.basename(path),
-        mimeType: mime.lookup(path),
-        ext: p.extname(path),
-        dirname: p.dirname(path),
-        path: path,
-        size : stat.size,
-        mtime :  stat.mtime.getTime(),
-        lastModified : moment(stat.mtime).format(DATE_FORMAT),
-        atime : stat.atime.getTime(),
-        lastAccessed : moment(stat.atime).format(DATE_FORMAT),
-        ctime : stat.ctime.getTime(),
-        lastChanged : moment(stat.ctime).format(DATE_FORMAT),
-      };
-
-      if(stat.isDirectory()) {
-        info.directory = true;
-        info.depth = 0;
-        info.type = 'directory';
-      } else {
-        info.type = "file"
-      }
-
-      return info;
-    });
-};
-
-var statSync = function(path) {
-    var stat =  fs.statSync(path),
-        info = {
-        name: p.basename(path),
-        mimeType: mime.lookup(path),
-        ext: p.extname(path),
-        dirname: p.dirname(path),
-        path: path,
-        size : stat.size,
-        mtime :  stat.mtime.getTime(),
-        lastModified : moment(stat.mtime).format(DATE_FORMAT),
-        atime : stat.atime.getTime(),
-        lastAccessed : moment(stat.atime).format(DATE_FORMAT),
-        ctime : stat.ctime.getTime(),
-        lastChanged : moment(stat.ctime).format(DATE_FORMAT),
-    };
-
-    if(stat.isDirectory()) {
-      info.directory = true;
-      info.depth = 0;
-      info.type = 'directory';
-    } else {
-      info.type = "file"
-    }
-
-    return info;
-};
 
 /*
  * Reads EXIF data
@@ -735,38 +679,6 @@ function rmdirSync(path ) {
 }
 
 
-/**
- * Check if the given directory `path` is empty.
- */
-
-function isEmpty(path, callback) {
-  function _checkEmpty() {
-    fs.readdir(path, function(err, files) {
-        if (err && err.code !== 'ENOENT') {
-          callback(err);
-        } else {
-          callback(null,!files || !files.length);
-        }
-    });  
-  }
-
-  if (callback) {
-    _checkEmpty();
-  } else {
-    return new Promise(function (resolve, reject) {
-      callback = function(err,result) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(result);
-          }
-      };
-      _checkEmpty();
-    });
-  }
-
-}
-
 
 function write(path, str, mode,callback) {
     if (callback || typeof mode == "function") {
@@ -800,6 +712,105 @@ function readSync(path,encode) {
     encode = encode || 'utf8';
     return fs.readFileSync(path, encode);
 }
+
+
+/**
+ * Check if the given directory `path` is empty.
+ */
+
+function isEmpty(path, callback) {
+  function _checkEmpty() {
+    fs.readdir(path, function(err, files) {
+        if (err && err.code !== 'ENOENT') {
+          callback(err);
+        } else {
+          callback(null,!files || !files.length);
+        }
+    });  
+  }
+
+  if (callback) {
+    _checkEmpty();
+  } else {
+    return new Promise(function (resolve, reject) {
+      callback = function(err,result) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+      };
+      _checkEmpty();
+    });
+  }
+
+}
+
+
+function isEmptySync(path) {
+    return _fs.readdirSync(path).length === 0;
+}
+
+
+//https://nodejs.org/api/fs.html#fs_class_fs_stats
+function stat(path) {
+    return _fs.statAsync(path).then(function(stat) {
+      var info = {
+        name: p.basename(path),
+        mimeType: mime.lookup(path),
+        ext: p.extname(path),
+        dirname: p.dirname(path),
+        path: path,
+        size : stat.size,
+        mtime :  stat.mtime.getTime(),
+        lastModified : moment(stat.mtime).format(DATE_FORMAT),
+        atime : stat.atime.getTime(),
+        lastAccessed : moment(stat.atime).format(DATE_FORMAT),
+        ctime : stat.ctime.getTime(),
+        lastChanged : moment(stat.ctime).format(DATE_FORMAT),
+      };
+
+      if(stat.isDirectory()) {
+        info.directory = true;
+        info.depth = 0;
+        info.type = 'directory';
+      } else {
+        info.type = "file"
+      }
+
+      stat.extra = info;
+      return stat;
+    });
+};
+
+function statSync(path) {
+    var stat =  _fs.statSync(path),
+        info = {
+        name: p.basename(path),
+        mimeType: mime.lookup(path),
+        ext: p.extname(path),
+        dirname: p.dirname(path),
+        path: path,
+        size : stat.size,
+        mtime :  stat.mtime.getTime(),
+        lastModified : moment(stat.mtime).format(DATE_FORMAT),
+        atime : stat.atime.getTime(),
+        lastAccessed : moment(stat.atime).format(DATE_FORMAT),
+        ctime : stat.ctime.getTime(),
+        lastChanged : moment(stat.ctime).format(DATE_FORMAT),
+    };
+
+    if(stat.isDirectory()) {
+      info.directory = true;
+      info.depth = 0;
+      info.type = 'directory';
+    } else {
+      info.type = "file"
+    }
+    stat.extra = info;
+    return stat;
+};
+
 
 module.exports = {
   noDotFiles: noDotFiles,
@@ -838,16 +849,45 @@ module.exports = {
 
   quoat : quoat,
 
+  copy: _fs.copy,
+  copySync: _fs.copySync,
+
+  emptyDir: _fs.emptyDir,
+  emptyDirSync: _fs.emptyDirSync,
+
+  ensureFile: _fs.ensureFile,
+  ensureFileSync: _fs.ensureFileSync,
+
+  ensureDir: _fs.ensureDir,
+  ensureDirSync: _fs.ensureDirSync,
+
+  ensureLink: _fs.ensureLink,
+  ensureLinkSync: _fs.ensureLinkSync,
+
+  ensureSymlink: _fs.ensureSymlink,
+  ensureSymlinkSync: _fs.ensureSymlinkSync,
+
+  //exists: exists,
+  //existsSync: existsSync,
+  exists: _fs.exists,
+  existsSync: _fs.existsstsSync,
+
   isEmpty : isEmpty,
+  isEmptySync: isEmptySync,
 
-  exists: exists,
-  existsSync: existsSync,
+  //mkdir: mkdir,
+  //mkdirSync: mkdirSync,
+  mkdir : _fs.ensureDir,
+  mkdirSync: _fs.ensureDirSync,
 
+  move : _fs.move,
+  moveSync: _fs.moveSync,
+
+  //stat : stat,
+  //statSync : statSync,
   stat : stat,
   statSync : statSync,
 
-  mkdir: mkdir,
-  mkdirSync: mkdirSync,
 
   rmdir: rmdir,
   rmdirSync: rmdirSync,
@@ -855,13 +895,37 @@ module.exports = {
   copydir: copydir,
   copydirSync: copydirSync,
 
-  read: read,
-  readFile : read,
-  readSync: readSync,
-  readFileSync: readSync,
+//  read: read,
+//  readSync: readSync,
+  read: _fs.read,
+  readSync: _fs.readSync,
 
-  write: write,
-  writeFile: write,
-  writeSync: writeSync,
-  writeFileSync: writeSync
+  readdir : _fs.readdir,
+  readdirSync: _fs.readdirSync,
+
+//  readFile : read,
+//  readFileSync: readSync,
+  readFile : _fs.readFile,
+  readFileSync: _fs.readFileSync,
+
+  readJson : _fs.readJson,
+  readJsonSync: _fs.readJsonSync,
+
+  remove : _fs.remove,
+  removeSync: _fs.removeSync,
+
+//  write: write,
+//  writeSync: writeSync,
+  write: _fs.write,
+  writeSync: _fs.writeSync,
+
+//  writeFile: write,
+//  writeFileSync: writeSync
+
+  writeFile: _fs.writeFile,
+  writeFileSync: _fs.writeFile,
+
+  writeJson : _fs.writeJson,
+  writeJsonSync: _fs.writeJsonSync
+
 }
