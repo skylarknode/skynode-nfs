@@ -130,42 +130,7 @@ var sanitize = function(path) {
 }
 
 
-/*
-var exists = function(path,callback) {
-  function check(next) {
-    fs.stat(path, function (err) {
-      if (err) {
-        if (err.code === 'ENOENT') {
-          return callback(null, false);
-        }
-      }
-      callback(err, true);
-    });     
-  }
 
-  if (callback) {
-    check(callback);
-  } else {
-    return new Promise(function(resolve, reject) {
-      check(resolve);
-    });    
-  }
-};
-
-
-var existsSync = function(path) {
-  try {
-    fs.statSync(path);
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      return false;
-    }
-    throw err;
-  }
-
-  return true;
-};
-*/
 /**
  * firstExistingPath
  * Get back the first path that does exist
@@ -654,6 +619,73 @@ function copydirSync(from,to,filter) {
   return copydir.sync(from, to, filter);
 }
 
+function exists(path,callback) {
+  function check(next) {
+    fs.stat(path, function (err) {
+      if (err) {
+        if (err.code === 'ENOENT') {
+          return callback(null, false);
+        }
+      }
+      callback(err, true);
+    });     
+  }
+
+  if (callback) {
+    check(callback);
+  } else {
+    return new Promise(function(resolve, reject) {
+      check(resolve);
+    });    
+  }
+};
+
+
+function existsSync(path) {
+  try {
+    fs.statSync(path);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return false;
+    }
+    throw err;
+  }
+
+  return true;
+};
+
+function linkFile(filePath, destPath, relative, callback) {
+  if (!callback) {
+    callback = relative;
+    relative = false;
+  }
+
+  if (relative && process.platform !== 'win32') {
+    filePath = path.relative(path.dirname(destPath), filePath);
+  }
+
+  if (process.platform === 'win32') {
+    fs.link(filePath, destPath, callback);
+  } else {
+    fs.symlink(filePath, destPath, 'file', callback);
+  }
+};
+
+function linkDir(sourceDir, destDir, relative, callback) {
+  if (!callback) {
+    callback = relative;
+    relative = false;
+  }
+
+  if (relative && process.platform !== 'win32') {
+    sourceDir = path.relative(path.dirname(destDir), sourceDir);
+  }
+
+  var type = (process.platform === 'win32') ? 'junction' : 'dir';
+  fs.symlink(sourceDir, destDir, type, callback);
+};
+
+
 function rmdir(path,callback) {
   function _rmdir() {
     rmdirp(from, to, filter,callback);   
@@ -954,16 +986,14 @@ module.exports = {
   ensureSymlink: _fs.ensureSymlink,
   ensureSymlinkSync: _fs.ensureSymlinkSync,
 
-  //exists: exists,
-  //existsSync: existsSync,
-  exists: _fs.exists,
-  existsSync: _fs.existsstsSync,
+  exists: exists,
+  existsSync: existsSync,
 
   isEmpty : isEmpty,
   isEmptySync: isEmptySync,
 
-  link : _fs.link,
-  linkSync: _fs.linkSync,
+  linkFile : linkFile,
+  linkDir: linkDir,
 
   //mkdir: mkdir,
   //mkdirSync: mkdirSync,
