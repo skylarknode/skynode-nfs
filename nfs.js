@@ -129,6 +129,8 @@ var sanitize = function(path) {
      .replace(new RegExp(' {2,}', 'g'), ' ') //double space
 }
 
+
+/*
 var exists = function(path,callback) {
   function check(next) {
     fs.stat(path, function (err) {
@@ -163,7 +165,7 @@ var existsSync = function(path) {
 
   return true;
 };
-
+*/
 /**
  * firstExistingPath
  * Get back the first path that does exist
@@ -679,7 +681,6 @@ function rmdirSync(path ) {
 }
 
 
-
 function write(path, str, mode,callback) {
     if (callback || typeof mode == "function") {
       fs.writeFile(path, str, mode,callback);
@@ -713,6 +714,43 @@ function readSync(path,encode) {
     return fs.readFileSync(path, encode);
 }
 
+/*--------------------------------------------------------*/
+
+function concat(data, callback) {
+  if (data.files && data.files.length) {
+    async.mapLimit(data.files, 1000, function (ref, next) {
+      _fs.readFile(ref.srcPath, ref.encode || 'utf8', function (err, file) {
+        if (err) {
+          return next(err);
+        }
+
+        next(null, file);
+      });
+    }, function (err, files) {
+      if (err) {
+        return callback(err);
+      }
+
+      var output = files.join('\n;');
+      _fs.writeFile(data.destPath, output, callback);
+    });
+
+    return;
+  }
+
+  callback();
+}
+
+
+function concatSync(data) {
+  if (data.files && data.files.length) {
+    let files = data.files.map(function (ref) {
+      return _fs.readFileSync(ref.srcPath, ref.encode || 'utf8');
+    });
+    let output = files.join('\n;');
+    _fs.writeFileSync(data.destPath, output);
+  }
+}
 
 /**
  * Check if the given directory `path` is empty.
@@ -812,6 +850,49 @@ function statSync(path) {
 };
 
 
+// Adapted from http://stackoverflow.com/questions/5827612/node-js-fs-readdir-recursive-directory-search
+function  walk(dir, done) {
+  var results = [];
+
+  _fs.readdir(dir, function (err, list) {
+    if (err) {
+      return done(err);
+    }
+    var pending = list.length;
+    if (!pending) {
+      return done(null, results);
+    }
+    list.forEach(function (filename) {
+      filename = dir + '/' + filename;
+      _fs.stat(filename, function (err, stat) {
+        if (err) {
+          return done(err);
+        }
+
+        if (stat && stat.isDirectory()) {
+          walk(filename, function (err, res) {
+            if (err) {
+              return done(err);
+            }
+
+            results = results.concat(res);
+            pending -= 1;
+            if (!pending) {
+              done(null, results);
+            }
+          });
+        } else {
+          results.push(filename);
+          pending -= 1;
+          if (!pending) {
+            done(null, results);
+          }
+        }
+      });
+    });
+  });
+};
+
 module.exports = {
   noDotFiles: noDotFiles,
   higherPath: higherPath,
@@ -849,6 +930,12 @@ module.exports = {
 
   quoat : quoat,
 
+//
+
+
+  concat : concat,
+  concatSync : concatSync,
+
   copy: _fs.copy,
   copySync: _fs.copySync,
 
@@ -875,6 +962,9 @@ module.exports = {
   isEmpty : isEmpty,
   isEmptySync: isEmptySync,
 
+  link : _fs.link,
+  linkSync: _fs.linkSync,
+
   //mkdir: mkdir,
   //mkdirSync: mkdirSync,
   mkdir : _fs.ensureDir,
@@ -882,12 +972,6 @@ module.exports = {
 
   move : _fs.move,
   moveSync: _fs.moveSync,
-
-  //stat : stat,
-  //statSync : statSync,
-  stat : stat,
-  statSync : statSync,
-
 
   rmdir: rmdir,
   rmdirSync: rmdirSync,
@@ -913,6 +997,19 @@ module.exports = {
 
   remove : _fs.remove,
   removeSync: _fs.removeSync,
+
+  //stat : stat,
+  //statSync : statSync,
+  stat : _fs.stat,
+  statSync : _fs.statSync,
+
+  symlink : _fs.symlink,
+  symlinkSync: _fs.symlinkSync,
+
+  unlink  : _fs.unlink,
+  unlinkSync : _fs.unlinkSync,
+
+  walk : walk,
 
 //  write: write,
 //  writeSync: writeSync,
