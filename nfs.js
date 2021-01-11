@@ -968,6 +968,13 @@ module.exports = {
   concat : concat,
   concatSync : concatSync,
 
+
+  copyFile: _fs.copyFile,
+  copyFileSync: _fs.copyFileSync,
+
+  copydir: copydir,
+  copydirSync: copydirSync,
+
   copy: _fs.copy,
   copySync: _fs.copySync,
 
@@ -1006,8 +1013,6 @@ module.exports = {
   rmdir: rmdir,
   rmdirSync: rmdirSync,
 
-  copydir: copydir,
-  copydirSync: copydirSync,
 
 //  read: read,
 //  readSync: readSync,
