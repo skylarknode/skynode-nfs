@@ -1,6 +1,6 @@
 'use strict';
 
-const _fs = require('fs-extra');
+const fsextra = require('fs-extra');
 const _chokidar = require('chokidar');
 const _diskspace = require('diskspace');
 
@@ -477,7 +477,7 @@ function createReadStream(filename, options) {
   return new Promise((resolve, reject) => {
     /*eslint new-cap: "off"*/
     try {
-      const stream = _fs.createReadStream(filename, Object.assign({
+      const stream = fsextra.createReadStream(filename, Object.assign({
         bufferSize: 64 * 1024
       }, options));
 
@@ -500,7 +500,7 @@ function createWriteStream(filename, options) {
   return new Promise((resolve, reject) => {
     /*eslint new-cap: "off"*/
     try {
-      const stream = _fs.createWriteStream(filename);
+      const stream = fsextra.createWriteStream(filename);
 
       stream.on('error', (error) => {
         reject(error);
@@ -751,7 +751,7 @@ function readSync(path,encode) {
 function concat(data, callback) {
   if (data.files && data.files.length) {
     async.mapLimit(data.files, 1000, function (ref, next) {
-      _fs.readFile(ref.srcPath, ref.encode || 'utf8', function (err, file) {
+      fsextra.readFile(ref.srcPath, ref.encode || 'utf8', function (err, file) {
         if (err) {
           return next(err);
         }
@@ -764,7 +764,7 @@ function concat(data, callback) {
       }
 
       var output = files.join('\n;');
-      _fs.writeFile(data.destPath, output, callback);
+      fsextra.writeFile(data.destPath, output, callback);
     });
 
     return;
@@ -777,10 +777,10 @@ function concat(data, callback) {
 function concatSync(data) {
   if (data.files && data.files.length) {
     let files = data.files.map(function (ref) {
-      return _fs.readFileSync(ref.srcPath, ref.encode || 'utf8');
+      return fsextra.readFileSync(ref.srcPath, ref.encode || 'utf8');
     });
     let output = files.join('\n;');
-    _fs.writeFileSync(data.destPath, output);
+    fsextra.writeFileSync(data.destPath, output);
   }
 }
 
@@ -818,13 +818,13 @@ function isEmpty(path, callback) {
 
 
 function isEmptySync(path) {
-    return _fs.readdirSync(path).length === 0;
+    return fsextra.readdirSync(path).length === 0;
 }
 
 
 //https://nodejs.org/api/fs.html#fs_class_fs_stats
 function stat(path) {
-    return _fs.statAsync(path).then(function(stat) {
+    return fsextra.statAsync(path).then(function(stat) {
       var info = {
         name: p.basename(path),
         mimeType: mime.lookup(path),
@@ -854,7 +854,7 @@ function stat(path) {
 };
 
 function statSync(path) {
-    var stat =  _fs.statSync(path),
+    var stat =  fsextra.statSync(path),
         info = {
         name: p.basename(path),
         mimeType: mime.lookup(path),
@@ -886,7 +886,7 @@ function statSync(path) {
 function  walk(dir, done) {
   var results = [];
 
-  _fs.readdir(dir, function (err, list) {
+  fsextra.readdir(dir, function (err, list) {
     if (err) {
       return done(err);
     }
@@ -896,7 +896,7 @@ function  walk(dir, done) {
     }
     list.forEach(function (filename) {
       filename = dir + '/' + filename;
-      _fs.stat(filename, function (err, stat) {
+      fsextra.stat(filename, function (err, stat) {
         if (err) {
           return done(err);
         }
@@ -969,29 +969,29 @@ module.exports = {
   concatSync : concatSync,
 
 
-  copyFile: _fs.copyFile,
-  copyFileSync: _fs.copyFileSync,
+  copyFile: fsextra.copyFile,
+  copyFileSync: fsextra.copyFileSync,
 
   copydir: copydir,
   copydirSync: copydirSync,
 
-  copy: _fs.copy,
-  copySync: _fs.copySync,
+  copy: fsextra.copy,
+  copySync: fsextra.copySync,
 
-  emptyDir: _fs.emptyDir,
-  emptyDirSync: _fs.emptyDirSync,
+  emptyDir: fsextra.emptyDir,
+  emptyDirSync: fsextra.emptyDirSync,
 
-  ensureFile: _fs.ensureFile,
-  ensureFileSync: _fs.ensureFileSync,
+  ensureFile: fsextra.ensureFile,
+  ensureFileSync: fsextra.ensureFileSync,
 
-  ensureDir: _fs.ensureDir,
-  ensureDirSync: _fs.ensureDirSync,
+  ensureDir: fsextra.ensureDir,
+  ensureDirSync: fsextra.ensureDirSync,
 
-  ensureLink: _fs.ensureLink,
-  ensureLinkSync: _fs.ensureLinkSync,
+  ensureLink: fsextra.ensureLink,
+  ensureLinkSync: fsextra.ensureLinkSync,
 
-  ensureSymlink: _fs.ensureSymlink,
-  ensureSymlinkSync: _fs.ensureSymlinkSync,
+  ensureSymlink: fsextra.ensureSymlink,
+  ensureSymlinkSync: fsextra.ensureSymlinkSync,
 
   exists: exists,
   existsSync: existsSync,
@@ -1004,11 +1004,11 @@ module.exports = {
 
   //mkdir: mkdir,
   //mkdirSync: mkdirSync,
-  mkdir : _fs.ensureDir,
-  mkdirSync: _fs.ensureDirSync,
+  mkdir : fsextra.ensureDir,
+  mkdirSync: fsextra.ensureDirSync,
 
-  move : _fs.move,
-  moveSync: _fs.moveSync,
+  move : fsextra.move,
+  moveSync: fsextra.moveSync,
 
   rmdir: rmdir,
   rmdirSync: rmdirSync,
@@ -1016,48 +1016,48 @@ module.exports = {
 
 //  read: read,
 //  readSync: readSync,
-  read: _fs.read,
-  readSync: _fs.readSync,
+  read: fsextra.read,
+  readSync: fsextra.readSync,
 
-  readdir : _fs.readdir,
-  readdirSync: _fs.readdirSync,
+  readdir : fsextra.readdir,
+  readdirSync: fsextra.readdirSync,
 
 //  readFile : read,
 //  readFileSync: readSync,
-  readFile : _fs.readFile,
-  readFileSync: _fs.readFileSync,
+  readFile : fsextra.readFile,
+  readFileSync: fsextra.readFileSync,
 
-  readJson : _fs.readJson,
-  readJsonSync: _fs.readJsonSync,
+  readJson : fsextra.readJson,
+  readJsonSync: fsextra.readJsonSync,
 
-  remove : _fs.remove,
-  removeSync: _fs.removeSync,
+  remove : fsextra.remove,
+  removeSync: fsextra.removeSync,
 
   //stat : stat,
   //statSync : statSync,
-  stat : _fs.stat,
-  statSync : _fs.statSync,
+  stat : fsextra.stat,
+  statSync : fsextra.statSync,
 
-  symlink : _fs.symlink,
-  symlinkSync: _fs.symlinkSync,
+  symlink : fsextra.symlink,
+  symlinkSync: fsextra.symlinkSync,
 
-  unlink  : _fs.unlink,
-  unlinkSync : _fs.unlinkSync,
+  unlink  : fsextra.unlink,
+  unlinkSync : fsextra.unlinkSync,
 
   walk : walk,
 
 //  write: write,
 //  writeSync: writeSync,
-  write: _fs.write,
-  writeSync: _fs.writeSync,
+  write: fsextra.write,
+  writeSync: fsextra.writeSync,
 
 //  writeFile: write,
 //  writeFileSync: writeSync
 
-  writeFile: _fs.writeFile,
-  writeFileSync: _fs.writeFile,
+  writeFile: fsextra.writeFile,
+  writeFileSync: fsextra.writeFile,
 
-  writeJson : _fs.writeJson,
-  writeJsonSync: _fs.writeJsonSync
+  writeJson : fsextra.writeJson,
+  writeJsonSync: fsextra.writeJsonSync
 
 }
