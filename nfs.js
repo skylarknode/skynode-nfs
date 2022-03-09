@@ -2,10 +2,10 @@
 
 const fsextra = require('fs-extra');
 const _chokidar = require('chokidar');
-const _diskspace = require('diskspace');
+const diskspace = require('diskspace');
 
-var p = require('path');
-var Promise = require('bluebird')
+var m_path = require('path');
+var Promise = require('bluebird');
 var util = require('util');
 var fs = Promise.promisifyAll(require('fs'));
 //var HTTPError = require('./HTTPError.js');
@@ -16,6 +16,10 @@ var crypto = require('crypto');
 const mkdirp = require('mkdirp');
 const rmdirp = require('rmdirp');
 const copydirp = require('copy-dir');
+
+
+const  archiver = require('archiver');
+
 
 
 var MODE_0666 = parseInt('0666', 8);
@@ -32,7 +36,7 @@ var rimraf = Promise.promisify(require('rimraf'));
  * @return bool
  */
 var noDotFiles = function(f) { 
-  return !/^\./.test(p.basename(f)) 
+  return !/^\./.test(m_path.basename(f)) 
 }
 
 /**
@@ -56,8 +60,8 @@ var higherPath = function(root, path) {
   if(!root && typeof root != 'string')
     throw new TypeError('Root is not a string')
 
-//  root = p.resolve(root)
-  path = p.resolve(root, p.normalize(path) || './')
+//  root = m_path.resolve(root)
+  path = m_path.resolve(root, m_path.normalize(path) || './')
 
   if(path.length < root.length || path.indexOf(root) == -1) {
     path = root
@@ -106,10 +110,10 @@ var buildUrl = function(path, search, options) {
   }
 
   if(search) {
-    return '/search' + str + '&search=' + search + '&path=' + encodeURIComponent(p.normalize(path))
+    return '/search' + str + '&search=' + search + '&path=' + encodeURIComponent(m_path.normalize(path))
   }
 
-  return '/' + str + '&path=' + encodeURIComponent(p.normalize(path))
+  return '/' + str + '&path=' + encodeURIComponent(m_path.normalize(path))
 }
 
 /**
@@ -118,8 +122,8 @@ var buildUrl = function(path, search, options) {
  * @param string path
  */
 var sanitize = function(path) {
-  return p.basename(path)
-     .replace(p.extname(path), '')
+  return m_path.basename(path)
+     .replace(m_path.extname(path), '')
      .replace(new RegExp('-[a-z0-9]+$', 'i'), '') //team name
      .replace(/\-|_|\(|\)/g, ' ') //special chars
      .replace(/([\w\d]{2})\./ig, "$1 ") //Replacing dot with min 2 chars before
@@ -158,7 +162,7 @@ var removeDirectoryContent = function(path) {
   return fs.readdirAsync(path)
   .filter(noDotFiles)
   .map(function(filename) {
-    return rimraf(p.resolve(path, filename))
+    return rimraf(m_path.resolve(path, filename))
   })
 }
 
@@ -194,12 +198,12 @@ var parallelMiddlewares = function(middlewares) {
  */
 var pathInfo = function(path) {
 
-  var filename = p.basename(path) 
+  var filename = m_path.basename(path) 
 
   var o = {
     name: filename,
-    ext: p.extname(filename),
-    dirname: p.dirname(path),
+    ext: m_path.extname(filename),
+    dirname: m_path.dirname(path),
     path: path
   }
 
@@ -284,7 +288,7 @@ var buildBreadcrumb = function(root, path) {
 
   for(let i in paths) {
     breadcrumbs[parseInt(i)+1] = {
-      path: p.join(breadcrumbs[i].path, paths[i]),
+      path: m_path.join(breadcrumbs[i].path, paths[i]),
       name: paths[i]
     }
   }
@@ -301,8 +305,8 @@ var buildBreadcrumb = function(root, path) {
  */
 var directorySize = function(file, root, options) {
 
-  var path = p.resolve(root.path, file)
-  var depth = file.split(p.sep).length
+  var path = m_path.resolve(root.path, file)
+  var depth = file.split(m_path.sep).length
 
   if(root.depth < depth) {
     root.depth = depth
@@ -321,7 +325,7 @@ var directorySize = function(file, root, options) {
         items = items.filter(options.filters[i]) 
       }
 
-      return items.each(v => directorySize(p.join(file, v), root, options));
+      return items.each(v => directorySize(m_path.join(file, v), root, options));
     } else {
       root.size += stat.size
       return Promise.resolve(root)
@@ -339,10 +343,10 @@ var recursiveReaddir = function(root, options) {
   }
 
   return items.map(function(f) {
-    var path = p.join(root, f)
+    var path = m_path.join(root, f)
 
     return fs.statAsync(path).then(function(stat) {
-      let depth = root.replace(options.root, '').split(p.sep).length;
+      let depth = root.replace(options.root, '').split(m_path.sep).length;
 
       if(depth > options.maxDepth)
         return path
@@ -423,7 +427,7 @@ var paths = function(path, options) {
   if(typeof path == 'string') {
     if(options.recursive === true) {
       return recursiveReaddir(path, options).map(function(e) {
-        return p.relative(path, e);
+        return m_path.relative(path, e);
       })
     }  
     
@@ -534,219 +538,64 @@ function createWatch(dir, callback) {
   });
 }
 
-function quoat(path,callback) {
-  function _quoat() {
-      _diskspace.check(path, (err, result) => {
-        //result.total is how much the drive has totally.
-        //result.used is how much of the drive is reported as used.
-        //result.free is how much free space you have.
-        //result.status isn't really that useful unless you want to debug.
-        callback(err,result);
+
+
+/*----------------------------------------------------------------------------------------------------*/
+
+
+function archive(sources,dest,options) {
+  var zipper = archiver('zip',options);
+  var self = this;
+
+  return new Promise(function (resolve, reject) {
+      console.log("archive:" + sources);
+      zipper.on('error', function(err) {
+        ///cconsole.log("err",err);
+        ///zipper.abort();
+        reject(err);
       });
-  }
 
-  if (callback) {
-    _quoat();
-  } else {
-    return new Promise(function (resolve, reject) {
-      callback = function(err,result){
-        if (err) {
-          reject(err);
+      //on stream closed we can end the request
+      zipper.on('end', function() {
+        ///let b = zipper.pointer();
+        ///debug('Archive wrote %d bytes', b);
+        resolve();
+      })
+
+
+      if(typeof dest == 'string') {
+        zipper.pipe(fs.createWriteStream(dest));
+      } else {
+        zipper.pipe(dest);
+      }
+
+
+      var directories = [],
+          files = [];
+
+      for (let i in sources) {
+        var source = sources[i];
+        if (fs.statSync(source).directory) {
+          directories.push(source);
         } else {
-          resolve(result);
-        }
-      }; 
-      _quoat();
-    });    
-  }
-}
-
-/**
- * Mkdir -p.
- *
- */
-function mkdir(path,  opts ,callback) {
-  opts = opts || MODE_0755;
-  
-  function _mkdir() {
-    mkdirp(path, opts, callback);
-  }
-
-  if (callback) {
-    _mkdir();
-  } else {
-    return new Promise(function (resolve, reject) {
-      callback = function(err,result) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(result);
-          }
-      };
-      _mkdir();
-    });
-  }
-}
-
-function mkdirSync(path,  opts ) {
-  opts = opts || MODE_0755;
-  return mkdirp.sync(path, opts);
-}
-
-
-function copydir(from,to,filter,callback ) {
-  function _copydir() {
-    copydirp(from, to, filter,callback);   
-  }
-
-  if (callback) {
-    _copydir();
-  } else {
-    return new Promise(function (resolve, reject) {
-      callback = function(err,result) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(result);
-          }
-      };
-      _copydir();
-    });
-  }
-}
-
-function copydirSync(from,to,filter) {
-  return copydir.sync(from, to, filter);
-}
-
-function exists(path,callback) {
-  function check(next) {
-    fs.stat(path, function (err) {
-      if (err) {
-        if (err.code === 'ENOENT') {
-          return callback(null, false);
+          files.push(source);
         }
       }
-      callback(err, true);
-    });     
-  }
+      for(let i in directories) {
+        console.log(directories[i], m_path.basename(directories[i]));
+        zipper.directory(directories[i], m_path.basename(directories[i]));
+      }
 
-  if (callback) {
-    check(callback);
-  } else {
-    return new Promise(function(resolve, reject) {
-      check(resolve);
-    });    
-  }
-};
+      for(let i in files) {
+        ////zipper.append(_fs.createReadStream(files[i]), {name: m_path.basename(files[i])}) 
+        zipper.file(files[i],{name: m_path.basename(files[i])})
+      }
 
+      zipper.finalize()
+  });
 
-function existsSync(path) {
-  try {
-    fs.statSync(path);
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      return false;
-    }
-    throw err;
-  }
-
-  return true;
-};
-
-function linkFile(filePath, destPath, relative, callback) {
-  if (!callback) {
-    callback = relative;
-    relative = false;
-  }
-
-  if (relative && process.platform !== 'win32') {
-    filePath = path.relative(path.dirname(destPath), filePath);
-  }
-
-  if (process.platform === 'win32') {
-    fs.link(filePath, destPath, callback);
-  } else {
-    fs.symlink(filePath, destPath, 'file', callback);
-  }
-};
-
-function linkDir(sourceDir, destDir, relative, callback) {
-  if (!callback) {
-    callback = relative;
-    relative = false;
-  }
-
-  if (relative && process.platform !== 'win32') {
-    sourceDir = path.relative(path.dirname(destDir), sourceDir);
-  }
-
-  var type = (process.platform === 'win32') ? 'junction' : 'dir';
-  fs.symlink(sourceDir, destDir, type, callback);
-};
-
-
-function rmdir(path,callback) {
-  function _rmdir() {
-    rmdirp(from, to, filter,callback);   
-  }
-
-  if (callback) {
-    _rmdir();
-  } else {
-    return new Promise(function (resolve, reject) {
-      callback = function(err,result) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(result);
-          }
-      };
-      _rmdir();
-    });
-  }
-      
 }
 
-function rmdirSync(path ) {
-  return rmdirp.sync(path);
-}
-
-
-function write(path, str, mode,callback) {
-    if (callback || typeof mode == "function") {
-      fs.writeFile(path, str, mode,callback);
-    } else {
-      return fs.writeFileAsync(path, str,mode)
-    }
-}
-
-function writeSync(path, str, mode) {
-    return fs.writeFileSync(path, str, { mode: mode || MODE_0666 })
-}
-
-
-function read(path,encode,callback) {
-    if (!callback && typeof encode == "function") {
-      callback = encode;
-      encode = null;
-    }
-    encode = encode || 'utf8';
-
-    if (callback) {
-      fs.readFile(path, encode,callback);
-    } else {
-      return fs.readFileAsync(path, encode);
-    }
-}
-
-
-function readSync(path,encode) {
-    encode = encode || 'utf8';
-    return fs.readFileSync(path, encode);
-}
-
-/*--------------------------------------------------------*/
 
 function concat(data, callback) {
   if (data.files && data.files.length) {
@@ -783,6 +632,69 @@ function concatSync(data) {
     fsextra.writeFileSync(data.destPath, output);
   }
 }
+
+function copydir(from,to,filter,callback ) {
+  function _copydir() {
+    copydirp(from, to, filter,callback);   
+  }
+
+  if (callback) {
+    _copydir();
+  } else {
+    return new Promise(function (resolve, reject) {
+      callback = function(err,result) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+      };
+      _copydir();
+    });
+  }
+}
+
+function copydirSync(from,to,filter) {
+  return copydir.sync(from, to, filter);
+}
+
+
+
+function exists(path,callback) {
+  function check(next) {
+    fs.stat(path, function (err) {
+      if (err) {
+        if (err.code === 'ENOENT') {
+          return callback(null, false);
+        }
+      }
+      callback(err, true);
+    });     
+  }
+
+  if (callback) {
+    check(callback);
+  } else {
+    return new Promise(function(resolve, reject) {
+      check(resolve);
+    });    
+  }
+}
+
+
+function existsSync(path) {
+  try {
+    fs.statSync(path);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return false;
+    }
+    throw err;
+  }
+
+  return true;
+}
+
 
 /**
  * Check if the given directory `path` is empty.
@@ -822,64 +734,90 @@ function isEmptySync(path) {
 }
 
 
-//https://nodejs.org/api/fs.html#fs_class_fs_stats
-function stat(path) {
-    return fsextra.statAsync(path).then(function(stat) {
-      var info = {
-        name: p.basename(path),
-        mimeType: mime.lookup(path),
-        ext: p.extname(path),
-        dirname: p.dirname(path),
-        path: path,
-        size : stat.size,
-        mtime :  stat.mtime.getTime(),
-        lastModified : moment(stat.mtime).format(DATE_FORMAT),
-        atime : stat.atime.getTime(),
-        lastAccessed : moment(stat.atime).format(DATE_FORMAT),
-        ctime : stat.ctime.getTime(),
-        lastChanged : moment(stat.ctime).format(DATE_FORMAT),
+function linkDir(sourceDir, destDir, relative, callback) {
+  if (!callback) {
+    callback = relative;
+    relative = false;
+  }
+
+  if (relative && process.platform !== 'win32') {
+    sourceDir = path.relative(path.dirname(destDir), sourceDir);
+  }
+
+  var type = (process.platform === 'win32') ? 'junction' : 'dir';
+  fs.symlink(sourceDir, destDir, type, callback);
+}
+
+
+function linkFile(filePath, destPath, relative, callback) {
+  if (!callback) {
+    callback = relative;
+    relative = false;
+  }
+
+  if (relative && process.platform !== 'win32') {
+    filePath = path.relative(path.dirname(destPath), filePath);
+  }
+
+  if (process.platform === 'win32') {
+    fs.link(filePath, destPath, callback);
+  } else {
+    fs.symlink(filePath, destPath, 'file', callback);
+  }
+}
+
+function quoat(path,callback) {
+  function _quoat() {
+      diskspace.check(path, (err, result) => {
+        //result.total is how much the drive has totally.
+        //result.used is how much of the drive is reported as used.
+        //result.free is how much free space you have.
+        //result.status isn't really that useful unless you want to debug.
+        callback(err,result);
+      });
+  }
+
+  if (callback) {
+    _quoat();
+  } else {
+    return new Promise(function (resolve, reject) {
+      callback = function(err,result){
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      }; 
+      _quoat();
+    });    
+  }
+}
+
+function rmdir(path,callback) {
+  function _rmdir() {
+    rmdirp(from, to, filter,callback);   
+  }
+
+  if (callback) {
+    _rmdir();
+  } else {
+    return new Promise(function (resolve, reject) {
+      callback = function(err,result) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
       };
-
-      if(stat.isDirectory()) {
-        info.directory = true;
-        info.depth = 0;
-        info.type = 'directory';
-      } else {
-        info.type = "file"
-      }
-
-      stat.extra = info;
-      return stat;
+      _rmdir();
     });
-};
+  }
+      
+}
 
-function statSync(path) {
-    var stat =  fsextra.statSync(path),
-        info = {
-        name: p.basename(path),
-        mimeType: mime.lookup(path),
-        ext: p.extname(path),
-        dirname: p.dirname(path),
-        path: path,
-        size : stat.size,
-        mtime :  stat.mtime.getTime(),
-        lastModified : moment(stat.mtime).format(DATE_FORMAT),
-        atime : stat.atime.getTime(),
-        lastAccessed : moment(stat.atime).format(DATE_FORMAT),
-        ctime : stat.ctime.getTime(),
-        lastChanged : moment(stat.ctime).format(DATE_FORMAT),
-    };
-
-    if(stat.isDirectory()) {
-      info.directory = true;
-      info.depth = 0;
-      info.type = 'directory';
-    } else {
-      info.type = "file"
-    }
-    stat.extra = info;
-    return stat;
-};
+function rmdirSync(path ) {
+  return rmdirp.sync(path);
+}
 
 
 // Adapted from http://stackoverflow.com/questions/5827612/node-js-fs-readdir-recursive-directory-search
@@ -963,7 +901,7 @@ module.exports = {
   quoat : quoat,
 
 //
-
+  archive,
 
   concat : concat,
   concatSync : concatSync,
@@ -1002,8 +940,6 @@ module.exports = {
   linkFile : linkFile,
   linkDir: linkDir,
 
-  //mkdir: mkdir,
-  //mkdirSync: mkdirSync,
   mkdir : fsextra.ensureDir,
   mkdirSync: fsextra.ensureDirSync,
 
@@ -1013,17 +949,12 @@ module.exports = {
   rmdir: rmdir,
   rmdirSync: rmdirSync,
 
-
-//  read: read,
-//  readSync: readSync,
   read: fsextra.read,
   readSync: fsextra.readSync,
 
   readdir : fsextra.readdir,
   readdirSync: fsextra.readdirSync,
 
-//  readFile : read,
-//  readFileSync: readSync,
   readFile : fsextra.readFile,
   readFileSync: fsextra.readFileSync,
 
@@ -1033,8 +964,6 @@ module.exports = {
   remove : fsextra.remove,
   removeSync: fsextra.removeSync,
 
-  //stat : stat,
-  //statSync : statSync,
   stat : fsextra.stat,
   statSync : fsextra.statSync,
 
@@ -1046,13 +975,9 @@ module.exports = {
 
   walk : walk,
 
-//  write: write,
-//  writeSync: writeSync,
   write: fsextra.write,
   writeSync: fsextra.writeSync,
 
-//  writeFile: write,
-//  writeFileSync: writeSync
 
   writeFile: fsextra.writeFile,
   writeFileSync: fsextra.writeFile,
