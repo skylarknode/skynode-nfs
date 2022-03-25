@@ -900,8 +900,7 @@ module.exports = {
 
   quoat : quoat,
 
-//
-  archive,
+  archive : archive,
 
   concat : concat,
   concatSync : concatSync,
@@ -934,11 +933,17 @@ module.exports = {
   exists: exists,
   existsSync: existsSync,
 
+  fstat : fsextra.fstat,
+  fstatSync : fsextra.fstatSync,
+
   isEmpty : isEmpty,
   isEmptySync: isEmptySync,
 
   linkFile : linkFile,
   linkDir: linkDir,
+
+  lstat : fsextra.lstat,
+  lstatSync : fsextra.lstatSync,
 
   mkdir : fsextra.ensureDir,
   mkdirSync: fsextra.ensureDirSync,
