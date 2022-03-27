@@ -898,6 +898,15 @@ module.exports = {
   recursiveReaddir : recursiveReaddir,
 
 
+
+  // path 
+  basename : m_path.basename,
+  dirname : m_path.dirname,
+  join : m_path.join,
+  resolve : m_path.resolve,
+  sep : m_path.sep,
+
+  // file/directory
   quoat : quoat,
 
   archive : archive,
