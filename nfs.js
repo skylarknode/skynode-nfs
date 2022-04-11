@@ -6,13 +6,10 @@ const diskspace = require('diskspace');
 
 var m_path = require('path');
 var Promise = require('bluebird');
-var util = require('util');
 var fs = Promise.promisifyAll(require('fs'));
 //var HTTPError = require('./HTTPError.js');
 var async = require('async');
 var mime = require('mime');
-var moment = require('moment');
-var crypto = require('crypto');
 const mkdirp = require('mkdirp');
 const rmdirp = require('rmdirp');
 const copydirp = require('copy-dir');
@@ -39,15 +36,7 @@ var noDotFiles = function(f) {
   return !/^\./.test(m_path.basename(f)) 
 }
 
-/**
- * Secures a string for a command line search
- * strips: ", ', \, &, |, ;, -
- * @param string str
- * @return string
- */
-var secureString = function secureString(str) {
-  return str.replace(/"|'|\\|&|\||;|-/g, '')
-}
+
 
 /**
  * Get pack the higher available path to avoid unwanted behaviors
@@ -70,51 +59,6 @@ var higherPath = function(root, path) {
   return path
 }
 
-/**
- * Just wanted to test ES6 new stuff
- * ... just kidding extend one arg to another instead of only the first one
- * @param object origin
- * @param object ...add
- * @return origin
- */
-var extend = function() {
-  var add = [].slice.call(arguments)
-  var origin = add.shift()
-
-  for(let i in add) {
-    origin = util._extend(origin, add[i]) 
-  }
-
-  return origin
-}
-
-/**
- * Build an URL string from params
- * this is used by the view to generate correct paths according to 
- * the sort, order, pages, search etc.
- * @param string path
- * @param string search
- * @param object options - will be built to a query key=value
- */
-var buildUrl = function(path, search, options) {
-
-  var str = ''
-  var first = true
-
-  for(let i in options) {
-    if(options[i]) {
-      str += first ? '?' : '&'
-      str += i + '=' + options[i]
-      first = false
-    }
-  }
-
-  if(search) {
-    return '/search' + str + '&search=' + search + '&path=' + encodeURIComponent(m_path.normalize(path))
-  }
-
-  return '/' + str + '&path=' + encodeURIComponent(m_path.normalize(path))
-}
 
 /**
  * Sanitize a string 
@@ -134,63 +78,6 @@ var sanitize = function(path) {
 }
 
 
-
-/**
- * firstExistingPath
- * Get back the first path that does exist
- * @param array paths 
- * @return string the founded path
- */
-var firstExistingPath = function(paths) {
-  for(let i in paths) {
-    if(paths[i] && existsSync(paths[i])) {
-      return paths[i]
-    }
-  }
-
-  return false
-}
-
-/**
- * Remove directory content with rimraf on each file
- * Skips dot files
- * @todo test?
- * @param string path
- * @return Promise
- */
-var removeDirectoryContent = function(path) {
-  return fs.readdirAsync(path)
-  .filter(noDotFiles)
-  .map(function(filename) {
-    return rimraf(m_path.resolve(path, filename))
-  })
-}
-
-/**
- * Handles system error, usually a Promise.catch
- * @param function next middleware next
- * @return function called by a Promise.catch
- */
-var handleSystemError = function(next) {
-   return function(e) {
-   
-     console.error(e.stack)
-
-     return next(e);
-     //return next(new HTTPError('A server error occur, if this happens again please contact the administrator: '+e.message, 500))
-   }  
-}
-
-/**
- * Handles middlewares in parallel
- */
-var parallelMiddlewares = function(middlewares) {
-  return function(req, res, next) {
-    return async.each(middlewares, function(m, cb) {
-      return m(req, res, cb) 
-    }, next) 
-  }
-}
 
 /**
  * Give path informations
@@ -222,19 +109,6 @@ var pathInfo = function(path) {
   }
 
   return Promise.resolve(o) 
-}
-
-/**
- * create sha1 hash from a string
- * @param string str the string to hash
- * @return string a sha1 hash in hexadecimal
- */
-var sha1Hash = function(str) {
-  var shasum = crypto.createHash('sha1')
-
-  shasum.update(str, 'utf8')
-
-  return shasum.digest('hex')
 }
 
 
@@ -269,32 +143,7 @@ var gracefulCatch = function(root, path) {
   }
 }
 
-/**
- * Build Breadcrumb from paths
- * @param string root
- * @param string path
- * @return array of objects {path, name} where name will be linked to path
- */
-var buildBreadcrumb = function(root, path) {
-  var breadcrumbs = [{path: root, name: root}]
 
-  if(!path) {
-    return breadcrumbs;
-  }
-
-  let paths = path.replace(root, '')
-    .split('/')
-    .filter(function(v) { return v != '' })
-
-  for(let i in paths) {
-    breadcrumbs[parseInt(i)+1] = {
-      path: m_path.join(breadcrumbs[i].path, paths[i]),
-      name: paths[i]
-    }
-  }
-
-  return breadcrumbs
-}
 
 /**
  * @param string file
@@ -303,7 +152,7 @@ var buildBreadcrumb = function(root, path) {
  *   - int maxDepth (10)
  *   - function filter (@see noDotFiles)
  */
-var directorySize = function(file, root, options) {
+var capacity = function(file, root, options) {
 
   var path = m_path.resolve(root.path, file)
   var depth = file.split(m_path.sep).length
@@ -325,7 +174,7 @@ var directorySize = function(file, root, options) {
         items = items.filter(options.filters[i]) 
       }
 
-      return items.each(v => directorySize(m_path.join(file, v), root, options));
+      return items.each(v => capacity(m_path.join(file, v), root, options));
     } else {
       root.size += stat.size
       return Promise.resolve(root)
@@ -364,56 +213,7 @@ var recursiveReaddir = function(root, options) {
   })
 }
 
-/**
- * Get directory size through cache
- * @param object options
- * @return function
- */
-var getDirectorySize = function(options) {
-  var cache = options.cache || false;
 
-  /**
-   * @param object file (see below)
-   * @return Promise
-   */
-  return function calcDirectorySize(f) {
-
-    if(f.ext !== 'app' && f.directory !== true) {
-      return f
-    }
-
-    var hash = sha1Hash(f.path);
-
-    var resolver = function() {
-      if(cache) {
-        return Promise.all([
-          cache.time.put(hash, ''+f.mtime, options.cacheTTL),
-          cache.size.put(hash, ''+f.size, options.cacheTTL)
-        ]) .then(function() {
-          return f;
-        })
-      }
-
-      return f;
-    }
-
-    if(cache) {
-      return cache.time.get(hash).then(function(cached) {
-        if(cached == f.mtime) {
-          return cache.size.get(hash)
-          .then(function(size) {
-            f.size = parseInt(size)
-            return f
-          })
-        }
-
-        return directorySize('', f, options).then(resolver);
-      })
-    }
-
-    return directorySize('', f, options).then(resolver)
-  }
-}
 
 /**
  * Handles path argument and return filtered paths
@@ -446,33 +246,7 @@ var paths = function(path, options) {
 }
 
 
-/*
- * Reads EXIF data
- */
-function readExif(path, mime) {
-  mime = mime || '';
 
-  let _read = function defaultRead(resolve, reject) {
-    resolve(null);
-  };
-
-  if ( mime.match(/^image/) ) {
-    try {
-      _read = function exifRead(resolve, reject) {
-        /*eslint no-new: "off"*/
-        new require('exif').ExifImage({image: path}, (err, result) => {
-          if ( err ) {
-            reject(err);
-          } else {
-            resolve(JSON.stringify(result, null, 4));
-          }
-        });
-      };
-    } catch ( e ) {}
-  }
-
-  return new Promise(_read);
-}
 
 /*
  * Create a read stream
@@ -633,6 +407,7 @@ function concatSync(data) {
   }
 }
 
+
 function copydir(from,to,filter,callback ) {
   function _copydir() {
     copydirp(from, to, filter,callback);   
@@ -657,8 +432,6 @@ function copydir(from,to,filter,callback ) {
 function copydirSync(from,to,filter) {
   return copydir.sync(from, to, filter);
 }
-
-
 
 function exists(path,callback) {
   function check(next) {
@@ -865,17 +638,6 @@ function  walk(dir, done) {
 
 module.exports = {
   noDotFiles: noDotFiles,
-  higherPath: higherPath,
-  extend: extend,
-  buildUrl: buildUrl,
-  sanitize: sanitize,
-  secureString: secureString,
-  firstExistingPath: firstExistingPath,
-  removeDirectoryContent: removeDirectoryContent,
-  handleSystemError: handleSystemError,
-  parallelMiddlewares: parallelMiddlewares,
-  pathInfo: pathInfo,
-  sha1Hash: sha1Hash,
   
   DATE_FORMAT : DATE_FORMAT, 
   DEFAULT_STAT : DEFAULT_STAT,
@@ -886,30 +648,23 @@ module.exports = {
   createWatch: createWatch,
 
 
-
-  buildBreadcrumb : buildBreadcrumb,
-  directorySize : directorySize,
-  getDirectorySize : getDirectorySize,
-  gracefulCatch : gracefulCatch,
-  paths : paths,
-  
-  
-  readExif : readExif,
-  recursiveReaddir : recursiveReaddir,
-
-
-
   // path 
   basename : m_path.basename,
   dirname : m_path.dirname,
   join : m_path.join,
   resolve : m_path.resolve,
   sep : m_path.sep,
+  sanitize: sanitize,
+  higherPath: higherPath,
+  paths : paths,
+  pathInfo: pathInfo,
 
   // file/directory
   quoat : quoat,
 
   archive : archive,
+
+  capacity : capacity,
 
   concat : concat,
   concatSync : concatSync,
@@ -974,6 +729,8 @@ module.exports = {
 
   readJson : fsextra.readJson,
   readJsonSync: fsextra.readJsonSync,
+
+  recursiveReaddir : recursiveReaddir,
 
   remove : fsextra.remove,
   removeSync: fsextra.removeSync,
