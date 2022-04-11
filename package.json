@@ -32,6 +32,7 @@
     "findit": ">=2.0.0",
     "formidable": ">=1.0.17",
     "fs-extra": "^4.0.3",
+    "fs-extra-promise": "^1.0.1",
     "glob": "^7.1.2",
     "glob-promise": "^3.3.0",
     "got": "^8.2.0",

@@ -1,12 +1,12 @@
 'use strict';
 
-const fsextra = require('fs-extra');
+const fsextra = require('fs-extra-promise');
 const _chokidar = require('chokidar');
 const diskspace = require('diskspace');
 
 var m_path = require('path');
 var Promise = require('bluebird');
-var fs = Promise.promisifyAll(require('fs'));
+var fs = require('fs');
 //var HTTPError = require('./HTTPError.js');
 var async = require('async');
 var mime = require('mime');
@@ -166,9 +166,9 @@ var capacity = function(file, root, options) {
     return Promise.resolve(root)
   }
 
-  return fs.statAsync(path).then(function(stat) {
+  return fsextra.statAsync(path).then(function(stat) {
     if(stat.isDirectory()) {
-      let items = fs.readdirAsync(path);
+      let items = fsextra.readdirAsync(path);
 
       for(let i in options.filters) {
         items = items.filter(options.filters[i]) 
@@ -185,7 +185,7 @@ var capacity = function(file, root, options) {
 
 var recursiveReaddir = function(root, options) {
 
-  let items =  fs.readdirAsync(root);
+  let items =  fsextra.readdirAsync(root);
 
   for(let i in options.filters) {
     items = items.filter(options.filters[i])
@@ -194,7 +194,7 @@ var recursiveReaddir = function(root, options) {
   return items.map(function(f) {
     var path = m_path.join(root, f)
 
-    return fs.statAsync(path).then(function(stat) {
+    return fsextra.statAsync(path).then(function(stat) {
       let depth = root.replace(options.root, '').split(m_path.sep).length;
 
       if(depth > options.maxDepth)
@@ -231,7 +231,7 @@ var paths = function(path, options) {
       })
     }  
     
-    items = fs.readdirAsync(path);
+    items = fsextra.readdirAsync(path);
   } else if(Array.isArray(path)) {
     items = Promise.all(path);
   } else {
@@ -660,99 +660,129 @@ module.exports = {
   pathInfo: pathInfo,
 
   // file/directory
+  quoatAsync : quoat,
   quoat : quoat,
 
+  archiveAsync : archive,
   archive : archive,
 
+  capacityAsync : capacity,
   capacity : capacity,
 
+  concatAsync : concat,
   concat : concat,
   concatSync : concatSync,
 
 
+  copyFileAsync: fsextra.copyFileAsync,
   copyFile: fsextra.copyFile,
   copyFileSync: fsextra.copyFileSync,
 
+  copydirAsync: copydir,
   copydir: copydir,
   copydirSync: copydirSync,
 
+  copyAsync: fsextra.copyAsync,
   copy: fsextra.copy,
   copySync: fsextra.copySync,
 
+  emptyDirAsync: fsextra.emptyDirAsync,
   emptyDir: fsextra.emptyDir,
   emptyDirSync: fsextra.emptyDirSync,
 
+  ensureFileAsync: fsextra.ensureFileAsync,
   ensureFile: fsextra.ensureFile,
   ensureFileSync: fsextra.ensureFileSync,
 
+  ensureDirAsync: fsextra.ensureDirAsync,
   ensureDir: fsextra.ensureDir,
   ensureDirSync: fsextra.ensureDirSync,
 
+  ensureLinkAsync: fsextra.ensureLinkAsync,
   ensureLink: fsextra.ensureLink,
   ensureLinkSync: fsextra.ensureLinkSync,
 
+  ensureSymlinkAsync: fsextra.ensureSymlinkAsync,
   ensureSymlink: fsextra.ensureSymlink,
   ensureSymlinkSync: fsextra.ensureSymlinkSync,
 
+  existsAsync: exists,
   exists: exists,
   existsSync: existsSync,
 
+  fstatAsync : fsextra.fstatAsync,
   fstat : fsextra.fstat,
   fstatSync : fsextra.fstatSync,
 
+  isEmptyAsync : isEmpty,
   isEmpty : isEmpty,
   isEmptySync: isEmptySync,
 
-  linkFile : linkFile,
+  linkFileAsync : linkFile,
   linkDir: linkDir,
 
+  lstatAsync : fsextra.lstatAsync,
   lstat : fsextra.lstat,
   lstatSync : fsextra.lstatSync,
 
+  mkdirAsync : fsextra.ensureDirAsync,
   mkdir : fsextra.ensureDir,
   mkdirSync: fsextra.ensureDirSync,
 
+  moveAsync : fsextra.moveAsync,
   move : fsextra.move,
   moveSync: fsextra.moveSync,
 
+  rmdirAsync: rmdir,
   rmdir: rmdir,
   rmdirSync: rmdirSync,
 
+  readAsync: fsextra.readAsync,
   read: fsextra.read,
   readSync: fsextra.readSync,
 
+  readdirAsync : fsextra.readdirAsync,
   readdir : fsextra.readdir,
   readdirSync: fsextra.readdirSync,
 
+  readFileAsync : fsextra.readFileAsync,
   readFile : fsextra.readFile,
   readFileSync: fsextra.readFileSync,
 
+  readJsonAsync : fsextra.readJsonAsync,
   readJson : fsextra.readJson,
   readJsonSync: fsextra.readJsonSync,
 
   recursiveReaddir : recursiveReaddir,
 
+  removeAsync : fsextra.removeAsync,
   remove : fsextra.remove,
   removeSync: fsextra.removeSync,
 
+  statAsync : fsextra.statAsync,
   stat : fsextra.stat,
   statSync : fsextra.statSync,
 
+  symlinkAsync : fsextra.symlinkAsync,
   symlink : fsextra.symlink,
   symlinkSync: fsextra.symlinkSync,
 
+  unlinkAsync  : fsextra.unlinkAsync,
   unlink  : fsextra.unlink,
   unlinkSync : fsextra.unlinkSync,
 
   walk : walk,
 
+  writeAsync: fsextra.writeAsync,
   write: fsextra.write,
   writeSync: fsextra.writeSync,
 
 
+  writeFileAsync: fsextra.writeFilAsynce,
   writeFile: fsextra.writeFile,
   writeFileSync: fsextra.writeFile,
 
+  writeJsonAsync : fsextra.writeJsonAsync,
   writeJson : fsextra.writeJson,
   writeJsonSync: fsextra.writeJsonSync
 
