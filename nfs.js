@@ -778,9 +778,9 @@ module.exports = {
   writeSync: fsextra.writeSync,
 
 
-  writeFileAsync: fsextra.writeFilAsynce,
+  writeFileAsync: fsextra.writeFileAsync,
   writeFile: fsextra.writeFile,
-  writeFileSync: fsextra.writeFile,
+  writeFileSync: fsextra.writeFileSync,
 
   writeJsonAsync : fsextra.writeJsonAsync,
   writeJson : fsextra.writeJson,
