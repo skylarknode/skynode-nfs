@@ -10,7 +10,6 @@ var fs = require('fs');
 //var HTTPError = require('./HTTPError.js');
 var async = require('async');
 var mime = require('mime');
-const mkdirp = require('mkdirp');
 const rmdirp = require('rmdirp');
 const copydirp = require('copy-dir');
 
