@@ -635,6 +635,90 @@ function  walk(dir, done) {
   });
 };
 
+
+function find(realPath,options) { //TODO
+  options = options || {};
+  const query = (options.query || '').toLowerCase();
+
+  /*
+   * Reads a directory and returns in a format  understands
+   */
+  function readDir(path,real, filter) {
+    filter = filter || function(iter) {
+      return ['.', '..'].indexOf(iter) === -1;
+    };
+
+    return new Promise((resolve, reject) => {
+      nfs.readdir(real, (err, list) => {
+        if ( err ) {
+          reject(err);
+        } else {
+          resolve(list.filter(filter).map((iter) => {
+            return nfs.statSync(nfs.join(path, iter),nfs.join(real, iter), iter);
+          }));
+        }
+      });
+    });
+  }
+
+  /*
+   * Creates file information in a format understands
+  */
+  function createFileInfo(path, real, iter, stat) {
+    var info = nfs.statSync(real);
+    info.dirname = info.path = path;
+    return info;
+  }
+
+
+  return new Promise(function (resolve, reject) {
+    if ( !options.recursive ) {
+      readDir(path, realPath, (iter) => {
+        if (  ['.', '..'].indexOf(iter) === -1 ) {
+          return iter.toLowerCase().indexOf(query) !== -1;
+        }
+        return false;
+      }).then(resolve).catch(reject);
+
+      return;
+    }
+
+    let finder;
+    try {
+      finder = require('findit')(realPath);
+    } catch ( e ) {
+      reject('Failed to load findit node library: ' + e.toString());
+      return;
+    }
+
+    let list = [];
+
+    function addIter(file, stat) {
+      const filename = nfs.basename(file).toLowerCase();
+      const fpath = path + file.substr(realPath.length).replace(/^\//, '');
+      list.push(createFileInfo(fpath, file, null, stat));
+    }
+
+    finder.on('path', () => {
+      if ( options.limit && list.length >= options.limit ) {
+        finder.stop();
+      }
+    });
+
+    finder.on('directory', addIter);
+    finder.on('file', addIter);
+
+    finder.on('end', () => {
+      resolve(list);
+    });
+
+    finder.on('stop', () => {
+      resolve(list);
+    });
+  });
+}
+
+
 module.exports = {
   noDotFiles: noDotFiles,
   
