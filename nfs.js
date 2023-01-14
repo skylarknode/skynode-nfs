@@ -567,7 +567,7 @@ function quoat(path,callback) {
 
 function rmdir(path,callback) {
   function _rmdir() {
-    rmdirp(from, to, filter,callback);   
+    rmdirp(path,callback);   
   }
 
   if (callback) {
@@ -737,6 +737,10 @@ module.exports = {
   join : m_path.join,
   resolve : m_path.resolve,
   sep : m_path.sep,
+  normalize : m_path.normalize,
+  extname : m_path.extname,
+  relative : m_path.relative,
+  
   sanitize: sanitize,
   higherPath: higherPath,
   paths : paths,
@@ -841,6 +845,8 @@ module.exports = {
   removeAsync : fsextra.removeAsync,
   remove : fsextra.remove,
   removeSync: fsextra.removeSync,
+
+  rimraf : rimraf,
 
   statAsync : fsextra.statAsync,
   stat : fsextra.stat,
